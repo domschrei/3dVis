@@ -1,3 +1,4 @@
+#include <GL/gl.h>
 #include <vector>
 #include <set>
 #include <map>
@@ -7,9 +8,11 @@
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
 
 #include "Graph.h"
 #include "SceneParameters.h"
+#include "CLI11.hpp"
 
 using namespace std;
 
@@ -41,6 +44,8 @@ void display(void)
 {
   if(current_graph != NULL) {
 
+    auto bg = current_graph->get_scene_params().color_background;
+    glClearColor(bg[0], bg[1], bg[2], bg[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glPushMatrix();
@@ -74,22 +79,18 @@ void setupNodes(Graph3D* g)
 }
 
 // builds (global) stack of coarsened graphs
-void init(char* filename)
+void init(const std::string& filename, const SceneParameters& scene_params)
 {
-  Graph3D* g = new Graph3D();
+  Graph3D* g = new Graph3D(scene_params);
   graph_stack.push_back(g);
 
   // build initial graph
-  if(filename == NULL)
-    setupNodes(g);
+  if(filename[0] == '-')
+    g->build_from_cnf(cin);
   else {
-    if(strncmp("-", filename, 1) == 0)
-      g->build_from_cnf(cin);
-    else {
-      ifstream is(filename);
-      g->build_from_cnf(is);
-      is.close();
-    }
+    ifstream is(filename);
+    g->build_from_cnf(is);
+    is.close();
   }
   cout << "Built initial graph G=(V,E) with |V| = " << g->nr_nodes() << " and |E| = "
        << g->nr_edges() << "." << endl;
@@ -130,13 +131,13 @@ void init(char* filename)
   glEnable (GL_BLEND);
   glLineWidth(1.5);
      
-  // set up two light sources:
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse_0);
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position_0);
-  glEnable(GL_LIGHT0);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, light_diffuse_1);
-  glLightfv(GL_LIGHT1, GL_POSITION, light_position_1);
-  glEnable(GL_LIGHT1);
+  // set up light sources
+  for (int i = 0; i < std::min(8UL, scene_params.light_sources.size()); i++) {
+    auto light_source = scene_params.light_sources[i];
+    glLightfv(SceneParameters::LIGHT_SOURCE_IDS[i], GL_DIFFUSE, light_source.color);
+    glLightfv(SceneParameters::LIGHT_SOURCE_IDS[i], GL_POSITION, light_source.position);
+    glEnable(SceneParameters::LIGHT_SOURCE_IDS[i]);
+  }
   glEnable(GL_LIGHTING);
 
   // hidden surface elimination
@@ -237,13 +238,94 @@ void keyboard(unsigned char key, int x, int y)
    glutPostRedisplay();
 }
 
+void getColorFromHexStr(const std::string& str, GLfloat* out)
+{
+  std::string normalized;
+  if (str.size() == 3 || str.size() == 4) {
+    normalized =
+      std::string(1,str[0]) + std::string(1,str[0]) +
+      std::string(1,str[1]) + std::string(1,str[1]) +
+      std::string(1,str[2]) + std::string(1,str[2]);
+    if (str.size() == 4)
+      normalized += std::string(1,str[3]) + std::string(1,str[3]);
+    else
+      normalized += "ff";
+  }
+  if (str.size() == 6) normalized = str + "ff";
+  if (str.size() == 8) normalized = str;
+
+  unsigned long x;
+  std::stringstream ss;
+  ss << std::hex << normalized;
+  ss >> x;
+
+  out[0] = (x & 0xff000000) >> 24;
+  out[1] = (x & 0x00ff0000) >> 16;
+  out[2] = (x & 0x0000ff00) >> 8;
+  out[3] = (x & 0x000000ff);
+
+  for (int i = 0; i < 4; i++) if (out[i] < 0 || out[i] > 255) {
+    cout << "ERROR: Invalid color value \"" << out[i] << "\" (must be between 0 and 255)" << endl;
+    exit(1);
+  };
+
+  for (int i = 0; i < 4; i++) out[i] /= 255;
+}
+
+SceneParameters initSceneParams(
+  const std::string& str_color_background,
+  const std::string& str_color_vertex,
+  const std::string& str_color_edge_binary,
+  const std::string& str_color_edge_hyper)
+{
+  // Set up colors
+  GLfloat color_background[4]; getColorFromHexStr(str_color_background, color_background);
+  GLfloat color_vertex[4]; getColorFromHexStr(str_color_vertex, color_vertex);
+  GLfloat color_edge_binary[4]; getColorFromHexStr(str_color_edge_binary, color_edge_binary);
+  GLfloat color_edge_hyper[4]; getColorFromHexStr(str_color_edge_hyper, color_edge_hyper);
+
+  // Set up light sources
+  SceneParameters::LightSource light1 { 
+    {1.0, 1.0, 1.0, 0.0}, 
+    { 1.0, 1.0, 1.0, 1.0 }
+  };
+  std::vector<SceneParameters::LightSource> light_sources {light1};
+
+  return SceneParameters(light_sources, color_background, color_vertex, color_edge_binary, color_edge_hyper);
+}
+
 int main(int argc, char* argv[])
 {
+  std::string description {"3D CNF Visualization (C) 2006 C. Sinz, JKU Linz | fork by D. Schreiber"};
+  CLI::App app{description};
+
+  std::string filename = "-";
+  std::string str_color_background = "ffffffff"; // opaque white
+  std::string str_color_vertex = "4444ffff"; // opaque blue
+  std::string str_color_edge_binary = "8888ffff"; // opaque light blue
+  std::string str_color_edge_hyper = "bbbbffff"; // opaque lighter blue
+
+  app.add_option("-f,--file", filename, "CNF input, or \"-\" to read from stdin (default: read from stdin)");
+  app.add_option("-s,--color-scene", str_color_background, "Color of scene / background (default: "
+    + str_color_background + ")");
+  app.add_option("-v,--color-vertex", str_color_vertex, "Color of vertices (default: "
+    + str_color_vertex + ")");
+  app.add_option("-b,--color-edge-binary", str_color_edge_binary, "Color of binary clause edges (default: "
+    + str_color_edge_binary + ")");
+  app.add_option("-y,--color-edge-hyper", str_color_edge_hyper, "Color of hyper edges (clauses of length > 2) (default: "
+    + str_color_edge_hyper + ")");
+
+  CLI11_PARSE(app, argc, argv);
+
+  auto scene_params = initSceneParams(str_color_background, str_color_vertex, str_color_edge_binary, str_color_edge_hyper);
+
   glutInitWindowSize(800, 600);
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-  glutCreateWindow("3D CNF Visualization (C) 2006 C. Sinz, JKU Linz");
-  init(argv[1]);
+  glutCreateWindow(description.c_str());
+
+  init(filename, scene_params);
+
   glutDisplayFunc(display);
   glutMotionFunc(motion);
   glutMouseFunc(mouse);

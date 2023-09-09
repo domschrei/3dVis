@@ -42,7 +42,7 @@ void Graph3D::build_from_cnf(istream& is)
   vector<long> clause;
   Node3D n;
     
-  while(!is.eof()) {
+  while(!is.eof() && is.good()) {
 
     // skip comment & problem description lines
     while((c = is.get()) == 'c' || c == 'p')
@@ -176,7 +176,7 @@ Graph3D* Graph3D::coarsen(void)
   // build coarsened graph
   map<int, int>::iterator k;
   
-  Graph3D* result = new Graph3D();
+  Graph3D* result = new Graph3D(scene_params);
   // a) set up nodes
   for(k = matching.begin(); k != matching.end(); k++) {
     Node3D n(k->second); // use second partner of each pair as merged node's id
@@ -396,14 +396,14 @@ void Graph3D::draw3D(float k, bool draw_edges, bool draw_only_2clauses,
 	  EdgeAttribute a = j->second;
 	  if(a == NT_3_PLUS_CLAUSE) {
 	    if(!draw_only_2clauses) {
-	      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, mat_amb_diff_cyan);
-	      gluCylinder(quad, LINK_WIDTH_FACTOR * k, LINK_WIDTH_FACTOR * k, dir_vec.norm(), 8, 4);
+	      glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, scene_params.color_edge_hyper);
+	      gluCylinder(quad, scene_params.link_width_factor * k, scene_params.link_width_factor * k, dir_vec.norm(), 8, 4);
 	    }
 	    // else: do nothing
 	  }
 	  else { // 2-clause
-	    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, mat_amb_diff_red);
-	    gluCylinder(quad, LINK_WIDTH_FACTOR * k, LINK_WIDTH_FACTOR * k, dir_vec.norm(), 8, 4);
+	    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, scene_params.color_edge_binary);
+	    gluCylinder(quad, scene_params.link_width_factor * k, scene_params.link_width_factor * k, dir_vec.norm(), 8, 4);
 	  }
 	  glPopMatrix();
 	}
@@ -413,7 +413,7 @@ void Graph3D::draw3D(float k, bool draw_edges, bool draw_only_2clauses,
   }
 
   // draw vertices
-  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, mat_amb_diff_white);
+  glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, scene_params.color_vertex);
   for(i = nodes.begin(); i != nodes.end(); i++) {
     const Node3D& node = i->second;
     glPushMatrix();

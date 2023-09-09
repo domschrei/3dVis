@@ -1,7 +1,6 @@
 CC	= g++
-CCFLAGS	= -O3 -Wall -DNDEBUG -DUSE_SPACE_GRID
-#LNFLAGS	= -lglut -lGL -lGLU -lX11 
-LNFLAGS	= -lXi -lX11 -lXext -lGL -lGLU -lglut -lX11 
+CCFLAGS	= -O3 -Wall -DNDEBUG # -DUSE_SPACE_GRID #-O2 -Wall -g
+LNFLAGS	= -lglut -lXi -lX11 -lXext -lGL -lGLU
 
 PROG1 = cnf3d2
 OBJS1 = Vector.o Node.o Graph.o SpaceGrid.o SceneParameters.o cnf3d2.o
@@ -11,7 +10,7 @@ progs: $(PROG1)
 all: progs
 
 $(PROG1): $(OBJS1)
-	$(CC) $(LNFLAGS) -o $@ $(OBJS1)
+	$(CC) -o $@ $(OBJS1) $(LNFLAGS)
 
 %.o: %.cpp
 	$(CC) $(CCFLAGS) -c $<

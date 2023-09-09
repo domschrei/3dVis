@@ -6,6 +6,7 @@
 #include <map>
 #include <vector>
 #include "Node.h"
+#include "SceneParameters.h"
 
 using namespace std;
 
@@ -20,8 +21,10 @@ private:
   map<int,int> matching;  // for graph coarsening (collapsing edges): maps node id of one end 
                           // of the collapsed edge to the other end's node id (or to itself)
 
+  SceneParameters scene_params;
+
 public:
-  Graph3D() : number_edges(0)  { } // constructs empty graph
+  Graph3D(const SceneParameters& scene_params) : number_edges(0), scene_params(scene_params) { } // constructs empty graph
   ~Graph3D() { }
 
   // modifiers
@@ -35,6 +38,7 @@ public:
   // observables
   int nr_nodes(void) { return nodes.size(); }
   int nr_edges(void) { return number_edges; }
+  const SceneParameters& get_scene_params() const { return scene_params;}
 
   // misc
   int independent_components(vector<int>* one_of_each_comp);
