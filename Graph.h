@@ -22,9 +22,11 @@ private:
                           // of the collapsed edge to the other end's node id (or to itself)
 
   SceneParameters scene_params;
+  bool use_space_grid;
 
 public:
-  Graph3D(const SceneParameters& scene_params) : number_edges(0), scene_params(scene_params) { } // constructs empty graph
+  Graph3D(const SceneParameters& scene_params, bool use_space_grid) :
+    number_edges(0), scene_params(scene_params), use_space_grid(use_space_grid) { } // constructs empty graph
   ~Graph3D() { }
 
   // modifiers

@@ -1,5 +1,6 @@
 CC	= g++
-CCFLAGS	= -O3 -Wall -DNDEBUG # -DUSE_SPACE_GRID #-O2 -Wall -g
+#CCFLAGS	= -O2 -Wall -g
+CCFLAGS	= -O3 -Wall -DNDEBUG
 LNFLAGS	= -lglut -lXi -lX11 -lXext -lGL -lGLU
 
 PROG1 = cnf3d2

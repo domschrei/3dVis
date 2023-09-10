@@ -9,8 +9,10 @@ make
 Usage:
 
 ```bash
-cnf3d2 -f <cnf-file>
-cat <cnf-file> | cnf3d2
+cnf3d2 -f $cnf # basic usage
+cat $cnf | cnf3d2 # read data from stdin
+cnf3d2 --space-grid 0 --random-seed 42 -f $cnf # disable space grid (more expensive!), seed random initial layout
+cnf3d2 --color-scene 000 --color-vertex f008 # black background, red semi-transparent vertices
 cnf3d2 -h  # show all program options
 ```
 
