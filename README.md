@@ -1,12 +1,16 @@
 
 # 3dVis
 
+This is a fork of Carsten Sinz' 3D SAT formula visualization tool, with the intent of making it a bit handier to use.
+
+## Building
+
 Build:
 ```bash
 make
 ```
 
-Usage:
+## Usage
 
 ```bash
 cnf3d2 -f $cnf # basic usage
@@ -24,12 +28,17 @@ the following commands may be used:
 - 'a': toggle node size adjustment
 - '2': toggle 2-clauses (only for graph with L=0)
 - 'g': go; compute all graphs down to level L=0
-- 'r': reset display (zoom, orientation,...)
+- 'r': reset display (zoom, orientation, translation)
+- 'x': show x, y, and z axes
 
 You can use the mouse to
-- rotate (with the left mouse button pressed)
-- zoom   (with the middle mouse button pressed)
-- drag   (with the right mouse button pressed)
+- **rotate** (with the left mouse button pressed)
+- **zoom**   (with the scrolling wheel OR with ctrl + left mouse)
+- **drag**   (with shift + left mouse)
 
-(C) Carsten Sinz, JKU Linz, 2006  
-Forked by D. Schreiber 2023
+## About
+
+This version uses freely licensed [arcball code by Brad Smith](http://rainwarrior.ca/dragon/arcball.html) to make rotations more natural.
+
+(C) Carsten Sinz, JKU Linz, 2006
+(C) Dominik Schreiber 2023

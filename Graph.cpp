@@ -257,9 +257,14 @@ void Graph3D::compute_layout(float k) {
 
   // iteratively compute layout
 
+  Vector3D center_of_mass;
+
   while (!converged) {
 
     converged = true;
+
+    double single_point_ratio = 1.0 / nodes.size();
+    center_of_mass = Vector3D(0, 0, 0);
 
     for (i = nodes.begin(); i != nodes.end(); i++) {
       Node3D &v = i->second;
@@ -305,6 +310,7 @@ void Graph3D::compute_layout(float k) {
 
       if (delta.norm() > k * tol)
         converged = false;
+      else center_of_mass += single_point_ratio * v.position();
     }
 
     cout << "*" << flush;
@@ -313,6 +319,8 @@ void Graph3D::compute_layout(float k) {
   }
   cout << endl;
 
+  // translate all nodes w.r.t. the graph's center of mass.
+  rescale(1, -1*center_of_mass);
   /*
   for(i = nodes.begin(); i != nodes.end(); i++)
     cout << i->second.position() << " ";

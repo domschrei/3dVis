@@ -4,7 +4,7 @@ CCFLAGS	= -O3 -Wall -DNDEBUG
 LNFLAGS	= -lglut -lXi -lX11 -lXext -lGL -lGLU
 
 PROG1 = cnf3d2
-OBJS1 = Vector.o Node.o Graph.o SpaceGrid.o SceneParameters.o cnf3d2.o
+OBJS1 = Vector.o Node.o Graph.o SpaceGrid.o SceneParameters.o cnf3d2.o arcball.o
 
 progs: $(PROG1)
 
@@ -17,7 +17,7 @@ $(PROG1): $(OBJS1)
 	$(CC) $(CCFLAGS) -c $<
 
 depend:
-	g++ -MM *.cpp
+	g++ -MM *.cpp arcball/*.cpp
 
 clean:
 	rm -f $(OBJS1)
@@ -32,3 +32,4 @@ Node.o: Node.cpp Node.h Vector.h
 SceneParameters.o: SceneParameters.cpp SceneParameters.h
 SpaceGrid.o: SpaceGrid.cpp SpaceGrid.h Node.h Vector.h
 Vector.o: Vector.cpp Vector.h
+arcball.o: arcball/arcball.cpp

@@ -1,3 +1,4 @@
+#include <GL/freeglut_std.h>
 #include <GL/gl.h>
 #include <GL/glut.h>
 #include <cassert>
@@ -13,19 +14,21 @@
 #include "CLI11.hpp"
 #include "Graph.h"
 #include "SceneParameters.h"
+#include "arcball/arcball.h"
 
 using namespace std;
 
 // ----------------------------------------------------------------------
 
-float sphi = 0.0, stheta = 0.0, spsi = 0.0;
+int height;
 float zoom = 1.0;
 float zNear = 0.1, zFar = 20.0;
 int downX, downY;
 bool leftButton = false, middleButton = false, rightButton = false;
 bool ctrlKeyPressed = false;
+bool shiftKeyPressed = false;
 
-float xOffset = 0.0, yOffset = 0.0;
+float xOffset = 0.0, yOffset = 0.0, zOffset = 0.0;
 
 Graph3D *current_graph; // currently displayed graph
 vector<Graph3D *> graph_stack;
@@ -37,31 +40,52 @@ int curr_L;
 bool next_graph = false, draw_edges = true, run_anim = false,
      adaptive_size = true;
 bool draw_only_2clauses = false;
+bool draw_helping_axes = false;
 
 Vector3D min_p, max_p;
 
 // ----------------------------------------------------------------------
 
+void draw_axes() {
+  // draw axes
+	glBegin(GL_LINES);
+		glColor4f(1.0, 0.0, 0.0, 1.0);
+		glVertex3f( 0.0,  0.0,  0.0);
+		glVertex3f( 1.0,  0.0,  0.0);
+		glColor4f(0.0, 1.0, 0.0, 1.0);
+		glVertex3f( 0.0,  0.0,  0.0);
+		glVertex3f( 0.0, 1.0,  0.0);
+		glColor4f(0.0, 0.0, 1.0, 1.0);
+		glVertex3f( 0.0,  0.0,  0.0);
+		glVertex3f( 0.0,  0.0, 1.0);
+	glEnd();
+}
+
 void display(void) {
+
   if (current_graph != NULL) {
 
     auto bg = current_graph->get_scene_params().color_background;
     glClearColor(bg[0], bg[1], bg[2], bg[3]);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    glLoadIdentity();
+    gluLookAt(
+      0, 0, 0+10/zoom,
+      0, 0, 0,
+      0.0, 1.0,  0.0
+    );
+    arcball_setzoom(0.03, vec(0, 0, 10/zoom), vec(0, 1, 0));
+    glTranslatef(xOffset, yOffset, 0);
+    arcball_rotate();
+
     glPushMatrix();
-
-    // Vector3D mid_p = 0.5 * (min_p + max_p);
-    glTranslatef(xOffset, yOffset, -10.0 / zoom);
-
-    glRotatef(stheta, 1.0, 0.0, 0.0);
-    glRotatef(sphi, 0.0, 1.0, 0.0);
-    glRotatef(spsi, 0.0, 0.0, 1.0);
 
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+    if (draw_helping_axes) draw_axes();
     current_graph->draw3D(k, draw_edges, draw_only_2clauses, adaptive_size);
-
+    
     glPopMatrix();
 
     glutSwapBuffers();
@@ -152,40 +176,67 @@ void init(const std::string &filename, const SceneParameters &scene_params,
 void motion(int x, int y) {
   if (leftButton) {
     if (ctrlKeyPressed) {
-      spsi += (float)(x - downX) / 4.0;
+      zoom += (float)(y - downY) * 0.005;
+    } else if (shiftKeyPressed) {
+      xOffset += (float)(x - downX) / 200.0;
+      yOffset += (float)(downY - y) / 200.0;
     } else {
-      sphi += (float)(x - downX) / 4.0;
+      arcball_move(x, height-y-1);
     }
-    stheta += (float)(y - downY) / 4.0;
-  }
-  if (middleButton) {
-    zoom += (float)(y - downY) * 0.005;
-  }
-  if (rightButton) {
-    xOffset += (float)(x - downX) / 200.0;
-    yOffset += (float)(downY - y) / 200.0;
+    glutPostRedisplay();
   }
   downX = x;
   downY = y;
-  glutPostRedisplay();
 }
 
 void mouse(int button, int state, int x, int y) {
+
+  if (state == GLUT_DOWN && button == 3) {
+    // scroll up
+    zoom *= 1.04;
+    glutPostRedisplay();
+    return;
+  }
+  if (state == GLUT_DOWN && button == 4) {
+    // scroll down
+    zoom /= 1.04;
+    glutPostRedisplay();
+    return;
+  }
+
   downX = x;
   downY = y;
   leftButton = ((button == GLUT_LEFT_BUTTON) && (state == GLUT_DOWN));
   middleButton = ((button == GLUT_MIDDLE_BUTTON) && (state == GLUT_DOWN));
   rightButton = ((button == GLUT_RIGHT_BUTTON) && (state == GLUT_DOWN));
-  ctrlKeyPressed = glutGetModifiers() & GLUT_ACTIVE_CTRL;
+  ctrlKeyPressed = (state == GLUT_DOWN) && (glutGetModifiers() & GLUT_ACTIVE_CTRL);
+  shiftKeyPressed = (state == GLUT_DOWN) && (glutGetModifiers() & GLUT_ACTIVE_SHIFT);
+  if (button == GLUT_LEFT_BUTTON && !ctrlKeyPressed && !shiftKeyPressed) {
+		if (state == GLUT_DOWN) {
+			arcball_start(x, height-y-1);
+		} else {
+			
+		}
+		glutPostRedisplay();
+	}
 }
 
 void reshape(int w, int h) {
-  glViewport(0, 0, w, h);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-  gluPerspective(40.0, (float)w / (float)h, zNear / 2.0,
-                 zFar * 2.0); // 1st arg.: view angle
-  glMatrixMode(GL_MODELVIEW);
+  //arcball.set_win_size(w, h);
+  height = h;
+	float aspect = (double)w / (double)h;
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(45.0, aspect, 0.1, 150.0);
+	glMatrixMode(GL_MODELVIEW);
+
+  //glViewport(0, 0, w, h);
+  //glMatrixMode(GL_PROJECTION);
+  //glLoadIdentity();
+  //gluPerspective(40.0, (float)w / (float)h, zNear / 2.0,
+  //               zFar * 2.0); // 1st arg.: view angle
+  //glMatrixMode(GL_MODELVIEW);
 }
 
 void idle(void) {
@@ -204,7 +255,7 @@ void idle(void) {
       float max_extent =
           max(max_p.x - min_p.x, max(max_p.y - min_p.y, max_p.z - min_p.z));
       // rescale to -10.0 .. +10.0 on all axes
-      Vector3D shift = Vector3D(-1.0, -1.0, -1.0) - 2.0 / max_extent * min_p;
+      Vector3D shift(0, 0, 0); //= Vector3D(-1.0, -1.0, -1.0) - 2.0 / max_extent * min_p;
       graph_stack[curr_L]->rescale(2.0 / max_extent, shift);
       current_graph = graph_stack[curr_L];
       k *= f_k;
@@ -232,7 +283,10 @@ void keyboard(unsigned char key, int x, int y) {
   case 'r': // reset
     xOffset = yOffset = 0.0;
     zoom = 1.0;
-    sphi = stheta = 0.0;
+    arcball_reset();
+    break;
+  case 'x': // draw axes
+    draw_helping_axes = !draw_helping_axes;
     break;
   case 'a':
     adaptive_size = !adaptive_size;
