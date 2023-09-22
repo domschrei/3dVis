@@ -48,7 +48,7 @@ public:
   void insert_node(Node3D* n);
           // Add node n to grid. (The position vector of node n must be set up properly.)
   
-  vector<Node3D*> find_neighbors(Node3D* n);
+  vector<Node3D*> find_neighbors(Node3D* n) const;
           // Return all neighbors, i.e. nodes with distance at most 1 cube (also diagonal)
           // from node n (including node n itself).
 
@@ -56,7 +56,7 @@ public:
   
   // ----- auxiliary functions -----
 
-  GridIndex grid_index(const Vector3D& p);
+  GridIndex grid_index(const Vector3D& p) const;
           // Compute grid index of cube into which a node with position p falls.
   
 };

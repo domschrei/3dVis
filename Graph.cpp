@@ -5,10 +5,13 @@
 #include <limits.h>
 #include <math.h>
 #include <stack>
+#include <omp.h>
+
 // #include <GL/freeglut_ext.h>
 #include "Graph.h"
 #include "SceneParameters.h"
 #include "SpaceGrid.h"
+#include "Vector.h"
 #include "assert.h"
 
 void Graph3D::add_node(Node3D n) {
@@ -234,68 +237,62 @@ void Graph3D::init_positions_from_graph(Graph3D *g, float k) {
 }
 
 void Graph3D::compute_layout(float k) {
-  map<int, Node3D>::iterator i;
-  set<ExtNode3D>::iterator n;
+  //set<ExtNode3D>::iterator n;
   bool converged = false;
-  float f_r, f_r_aux, f_a, t;
-  Vector3D delta, theta;
 
   const float tol = 0.01;
   const float C = 0.2;
   const float lambda = 0.9;
+  const float f_r_aux = -C * k * k;
+  float t = k;
 
-  t = k;
-  f_r_aux = -C * k * k;
-
-  vector<Node3D *> grid_neighbors;
   SpaceGrid3D sg(2.0 * k); // R = 2.0 * k
   if (use_space_grid) {
     // put nodes into space grid (with cube length 2k)
-    for (i = nodes.begin(); i != nodes.end(); i++)
+    for (auto i = nodes.begin(); i != nodes.end(); i++)
       sg.insert_node(&i->second);
   }
 
   // iteratively compute layout
 
-  Vector3D center_of_mass;
+  std::vector<int> nodeIds;
+  for (auto& [id, node] : nodes) nodeIds.push_back(id);
+  std::vector<Vector3D> nodePositions(nodeIds.size());
 
   while (!converged) {
 
     converged = true;
 
-    double single_point_ratio = 1.0 / nodes.size();
-    center_of_mass = Vector3D(0, 0, 0);
+    #pragma omp parallel for
+    for (size_t idx = 0; idx < nodeIds.size(); idx++) {
+      Node3D &v = nodes.at(nodeIds[idx]);
 
-    for (i = nodes.begin(); i != nodes.end(); i++) {
-      Node3D &v = i->second;
-
+      float f_r, f_a;
+      Vector3D delta, theta;
       theta = Vector3D(0.0, 0.0, 0.0);
 
       // calculate (global) repulsive forces
       if (use_space_grid) {
-        grid_neighbors = sg.find_neighbors(&v);
-        for (vector<Node3D *>::iterator j = grid_neighbors.begin();
-             j != grid_neighbors.end(); j++)
-          if (*j != &i->second) { // |delta| <= R is not enforced! (better
-                                  // layout quality)
-            delta = (*j)->position() - v.position();
-            f_r = f_r_aux * (*j)->weight() / delta.norm();
-            theta += f_r * delta.normalize();
-          }
+        auto grid_neighbors = sg.find_neighbors(&v);
+        for (auto& j : grid_neighbors) {
+          if (j->id() == v.id()) continue;
+          delta = j->position() - v.position();
+          f_r = f_r_aux * j->weight() / delta.norm();
+          theta += f_r * delta.normalize();
+        }
       } else {
-        for (map<int, Node3D>::iterator j = nodes.begin(); j != nodes.end();
-             j++)
-          if (j != i) {
-            Node3D &u = j->second;
-            delta = u.position() - v.position();
-            f_r = f_r_aux * u.weight() / delta.norm();
-            theta += f_r * delta.normalize();
-          }
+        for (size_t idx2 = 0; idx2 < nodeIds.size(); idx2++) {
+          if (idx2 == idx) continue;
+          Node3D &u = nodes.at(nodeIds[idx2]);
+          delta = u.position() - v.position();
+          f_r = f_r_aux * u.weight() / delta.norm();
+          theta += f_r * delta.normalize();
+        }
       }
 
       // calculate (local) attractive/spring forces
       const set<ExtNode3D> &neighbors = v.neighbors();
-      for (n = neighbors.begin(); n != neighbors.end(); n++) {
+      for (auto n = neighbors.begin(); n != neighbors.end(); n++) {
         delta = n->first->position() - v.position();
         float dn = delta.norm();
         if (dn <= 0)
@@ -306,11 +303,16 @@ void Graph3D::compute_layout(float k) {
 
       // reposition node v
       delta = min(t, theta.norm()) * theta.normalize();
-      v.set_pos(v.position() + delta);
+      nodePositions[idx] = v.position() + delta;
+      //v.set_pos(v.position() + delta);
 
       if (delta.norm() > k * tol)
         converged = false;
-      else center_of_mass += single_point_ratio * v.position();
+    }
+
+    // Commit new positions
+    for (size_t idx = 0; idx < nodePositions.size(); idx++) {
+      nodes.at(nodeIds[idx]).set_pos(nodePositions[idx]);
     }
 
     cout << "*" << flush;
@@ -320,7 +322,13 @@ void Graph3D::compute_layout(float k) {
   cout << endl;
 
   // translate all nodes w.r.t. the graph's center of mass.
+  double single_point_ratio = 1.0 / nodes.size();
+  Vector3D center_of_mass = Vector3D(0, 0, 0);
+  for (auto& [id, node] : nodes) {
+    center_of_mass += single_point_ratio * node.position();
+  }
   rescale(1, -1*center_of_mass);
+
   /*
   for(i = nodes.begin(); i != nodes.end(); i++)
     cout << i->second.position() << " ";

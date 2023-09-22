@@ -23,7 +23,7 @@ void SpaceGrid3D::insert_node(Node3D* n)
 // Return all neighbors, i.e. nodes with distance at most 1 cube (also diagonal)
 // from node n (including node n itself).
 
-vector<Node3D*> SpaceGrid3D::find_neighbors(Node3D* n)
+vector<Node3D*> SpaceGrid3D::find_neighbors(Node3D* n) const
 {
   vector<Node3D*> res;
   int i, j, k;
@@ -38,7 +38,7 @@ vector<Node3D*> SpaceGrid3D::find_neighbors(Node3D* n)
       for(k = gi.c - 1; k <= gi.c + 1; k++) {
 	gj = GridIndex(i, j, k);
 	if(cubes.find(gj) != cubes.end())
-	  copy(cubes[gj]->begin(), cubes[gj]->end(), inserter(res, res.begin()));
+	  copy(cubes.at(gj)->begin(), cubes.at(gj)->end(), inserter(res, res.begin()));
       }
   
   return res;
@@ -62,7 +62,7 @@ ostream& operator<<(ostream& os, const SpaceGrid3D& sg)
 
 // -------------------- methods for internal use  --------------------
 
-GridIndex SpaceGrid3D::grid_index(const Vector3D& p)
+GridIndex SpaceGrid3D::grid_index(const Vector3D& p) const
 {
   GridIndex gi;
   

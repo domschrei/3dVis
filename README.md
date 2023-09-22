@@ -20,6 +20,12 @@ cnf3d2 --color-scene 000 --color-vertex f008 # black background, red semi-transp
 cnf3d2 -h  # show all program options
 ```
 
+OpenMP is used to parallelize the force-directed layout computation. You can overwrite `OMP_NUM_THREADS` to control the degree of parallelism. For example: 
+
+```bash
+OMP_NUM_THREADS=8 cnf3d2 -f $cnf
+```
+
 When the graphics display appears (and has the focus)
 the following commands may be used:
 
