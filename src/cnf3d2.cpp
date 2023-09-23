@@ -13,12 +13,12 @@
 #include <string.h>
 #include <vector>
 
-#include "CLI11.hpp"
+#include "cli/CLI11.hpp"
 #include "Graph.h"
 #include "SceneParameters.h"
 #include "arcball/arcball.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 using namespace std;
 

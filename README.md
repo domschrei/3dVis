@@ -5,9 +5,12 @@ This is a fork of Carsten Sinz' 3D SAT formula visualization tool, with the inte
 
 ## Building
 
-Build:
 ```bash
-make
+mkdir -p build
+cd build
+cmake .. -DCMAKE_BUILD_TYPE=RELEASE
+make -j
+cd ..
 ```
 
 ## Usage
