@@ -3,6 +3,8 @@
 
 This is a fork of Carsten Sinz' 3D SAT formula visualization tool, with the intent of making it a bit handier to use.
 
+![BMC instance visualized](https://dominikschreiber.de/img/bmc.png)
+
 ## Building
 
 ```bash
