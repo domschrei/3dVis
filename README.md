@@ -36,6 +36,7 @@ the following commands may be used:
 - 'g': go; compute all graphs down to level L=0
 - 'r': reset display (zoom, orientation, translation)
 - 'x': show x, y, and z axes
+- 'p': save picture of current view to `out-%i.png`
 
 You can use the mouse to
 - **rotate** (with the left mouse button pressed)
@@ -44,7 +45,11 @@ You can use the mouse to
 
 ## About
 
-This version uses freely licensed [arcball code by Brad Smith](http://rainwarrior.ca/dragon/arcball.html) to make rotations more natural.
+This version uses the following freely licensed dependencies:
+
+* [arcball code by Brad Smith](http://rainwarrior.ca/dragon/arcball.html) to make rotations more natural
+* [CLI11](https://github.com/CLIUtils/CLI11) for program options
+* [stb_image_write](https://github.com/nothings/stb/blob/master/stb_image_write.h) for saving images
 
 (C) Carsten Sinz, JKU Linz, 2006
 (C) Dominik Schreiber 2023

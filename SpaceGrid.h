@@ -50,7 +50,7 @@ public:
   
   vector<Node3D*> find_neighbors(Node3D* n) const;
           // Return all neighbors, i.e. nodes with distance at most 1 cube (also diagonal)
-          // from node n (including node n itself).
+          // from node n (including node n itself).  
 
   friend ostream& operator<<(ostream& os, const SpaceGrid3D& sg);
   

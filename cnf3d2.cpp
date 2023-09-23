@@ -1,3 +1,5 @@
+
+#include <unistd.h>
 #include <GL/freeglut_std.h>
 #include <GL/gl.h>
 #include <GL/glut.h>
@@ -15,12 +17,14 @@
 #include "Graph.h"
 #include "SceneParameters.h"
 #include "arcball/arcball.h"
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include "stb_image_write.h"
 
 using namespace std;
 
 // ----------------------------------------------------------------------
 
-int height;
+int width, height;
 float zoom = 1.0;
 float zNear = 0.1, zFar = 20.0;
 int downX, downY;
@@ -222,7 +226,7 @@ void mouse(int button, int state, int x, int y) {
 }
 
 void reshape(int w, int h) {
-  //arcball.set_win_size(w, h);
+  width = w;
   height = h;
 	float aspect = (double)w / (double)h;
 	glViewport(0, 0, w, h);
@@ -266,6 +270,29 @@ void idle(void) {
   }
 }
 
+void save_image(const char* filepath) {
+  GLsizei nrChannels = 3;
+  GLsizei stride = nrChannels * width;
+  stride += (stride % 4) ? (4 - stride % 4) : 0;
+  GLsizei bufferSize = stride * height;
+  std::vector<char> buffer(bufferSize);
+  glPixelStorei(GL_PACK_ALIGNMENT, 4);
+  glReadBuffer(GL_FRONT);
+  glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
+  stbi_flip_vertically_on_write(true);
+  stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
+}
+
+void save_scene_to_image() {
+  int i = 0;
+  std::string path;
+  do {
+    i++;
+    path = "out-" + std::to_string(i) + ".png";
+  } while (access(path.c_str(), F_OK) != -1);
+  save_image(path.c_str());
+}
+
 void keyboard(unsigned char key, int x, int y) {
   switch (key) {
   case 'n':
@@ -290,6 +317,9 @@ void keyboard(unsigned char key, int x, int y) {
     break;
   case 'a':
     adaptive_size = !adaptive_size;
+    break;
+  case 'p':
+    save_scene_to_image();
     break;
   }
   glutPostRedisplay();
