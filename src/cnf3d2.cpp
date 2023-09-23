@@ -31,6 +31,7 @@ int downX, downY;
 bool leftButton = false, middleButton = false, rightButton = false;
 bool ctrlKeyPressed = false;
 bool shiftKeyPressed = false;
+bool pictureTaken = false;
 
 float xOffset = 0.0, yOffset = 0.0, zOffset = 0.0;
 
@@ -70,7 +71,14 @@ void display(void) {
   if (current_graph != NULL) {
 
     auto bg = current_graph->get_scene_params().color_background;
-    glClearColor(bg[0], bg[1], bg[2], bg[3]);
+    if (pictureTaken) {
+      // Simple "snapshot" effect
+      glClearColor(1-bg[0], 1-bg[1], 1-bg[2], bg[3]);
+      pictureTaken = false;
+      glutPostRedisplay();
+    } else {
+      glClearColor(bg[0], bg[1], bg[2], bg[3]);
+    }
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glLoadIdentity();
@@ -281,6 +289,9 @@ void save_image(const char* filepath) {
   glReadPixels(0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, buffer.data());
   stbi_flip_vertically_on_write(true);
   stbi_write_png(filepath, width, height, nrChannels, buffer.data(), stride);
+  std::cout << "Picture saved as \"" << filepath << "\"." << std::endl;
+  pictureTaken = true;
+  glutPostRedisplay();
 }
 
 void save_scene_to_image() {
@@ -418,6 +429,7 @@ int main(int argc, char *argv[]) {
   app.add_option("-r,--random-seed", seed,
                  "Random seed for graph initialization (default: " +
                      std::to_string(seed) + ")");
+  //app.add_option("-k", k, "Base cell size of space grid");
 
   CLI11_PARSE(app, argc, argv);
   srandom(seed);
